@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="128px" height="128px" viewBox="0 0 128 128" style="enable-background:new 0 0 128 128;" xml:space="preserve">
+	<style type="text/css">
+		.st0{fill:url(#XMLID_57_);}
+	</style>
+	<linearGradient id="XMLID_57_" gradientUnits="userSpaceOnUse" x1="32" y1="96" x2="96" y2="32">
+		<stop offset="0" style="stop-color:#88BBCC"/>
+		<stop offset="1" style="stop-color:#BBEEFF"/>
+	</linearGradient>
+	<path id="XMLID_6_" class="st0" d="M64,0C28.7,0,0,28.7,0,64s28.7,64,64,64s64-28.7,64-64S99.3,0,64,0z M64,111.4c-26.2,0-47.4-21.2-47.4-47.4S37.8,16.6,64,16.6s47.4,21.2,47.4,47.4S90.2,111.4,64,111.4z"/>
+</svg>

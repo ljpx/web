@@ -1,0 +1,15 @@
+name: Test
+on: [push]
+
+jobs:
+    test:
+        name: Test
+        runs-on: ubuntu-18.04
+        container:
+            image: golang:1.13.5
+        steps:
+            - name: Pull Repository
+              uses: actions/checkout@v1
+
+            - name: Unit Test
+              run: go test --race --cover ./...
