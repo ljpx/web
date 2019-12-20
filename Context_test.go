@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -26,6 +27,10 @@ func SetupContextTestFixture() *ContextTestFixture {
 	fixture.w = httptest.NewRecorder()
 	fixture.r = httptest.NewRequest(http.MethodGet, "/", nil)
 	fixture.c = di.NewContainer()
+
+	fixture.c.Register(di.Singleton, func(c di.Container) (testInterface, error) {
+		return &testStruct{}, nil
+	})
 
 	fixture.x = NewContext(fixture.w, fixture.r, fixture.c, &Config{
 		DebuggingEnabled:         true,
@@ -51,6 +56,41 @@ func TestContextGeneratesCorrelationID(t *testing.T) {
 
 	// Act.
 	test.That(t, fixture.x.GetCorrelationID().IsValid()).IsTrue()
+}
+
+func TestContextResolveSuccess(t *testing.T) {
+	// Arrange.
+	fixture := SetupContextTestFixture()
+
+	// Act.
+	var val testInterface
+	success := fixture.x.Resolve(&val)
+
+	// Assert.
+	test.That(t, success).IsTrue()
+	test.That(t, val.Greeting()).IsEqualTo("Hello, World!")
+}
+
+func TestContextResolveFailure(t *testing.T) {
+	// Arrange.
+	fixture := SetupContextTestFixture()
+
+	// Act.
+	var val io.Writer
+	success := fixture.x.Resolve(&val)
+
+	// Assert.
+	test.That(t, success).IsFalse()
+
+	res := fixture.w.Result()
+	test.That(t, res.StatusCode).IsEqualTo(http.StatusInternalServerError)
+
+	rawJSON, err := ioutil.ReadAll(res.Body)
+	test.That(t, err).IsNil()
+
+	json := string(rawJSON)
+	expectedJSON := "{\"type\":\"https://testi.ng/http/internal-server-error\",\"title\":\"Internal Server Error\",\"detail\":\"An internal server error prevented the request from completing.\",\"error\":\"the type `io.Writer` does not have a resolver in this container\"}"
+	test.That(t, json).IsEqualTo(expectedJSON)
 }
 
 func TestContextMiddlewareArtifactsSymmetric(t *testing.T) {
@@ -394,4 +434,16 @@ var _ json.Marshaler = &testUnmarshallableStruct{}
 
 func (s *testUnmarshallableStruct) MarshalJSON() ([]byte, error) {
 	return nil, fmt.Errorf("cannot be marshalled")
+}
+
+type testInterface interface {
+	Greeting() string
+}
+
+type testStruct struct{}
+
+var _ testInterface = &testStruct{}
+
+func (*testStruct) Greeting() string {
+	return "Hello, World!"
 }

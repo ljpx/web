@@ -54,14 +54,14 @@ func (ctx *Context) SetMiddlewareArtifact(name string, value interface{}) {
 	ctx.middlewareArtifacts[name] = value
 }
 
-// Resolve calls Resolve on the underlying container.
-func (ctx *Context) Resolve(dependencies ...interface{}) error {
-	return ctx.c.Resolve(dependencies...)
-}
-
 // ResponseWriter returns the http.ResponseWriter.
 func (ctx *Context) ResponseWriter() http.ResponseWriter {
 	return ctx.w
+}
+
+// Container returns the underlying container.
+func (ctx *Context) Container() di.Container {
+	return ctx.c
 }
 
 // Request returns the *http.Request.
@@ -146,6 +146,18 @@ func (ctx *Context) NotFound(subjectType string, subject string) {
 func (ctx *Context) InternalServerError(err error) {
 	problem := ctx.getProblemDetailsForInternalServerError(err)
 	ctx.RespondWithJSON(http.StatusInternalServerError, problem)
+}
+
+// Resolve resolves from the underlying container.  It will return false if
+// an error prevented the operation from completing.
+func (ctx *Context) Resolve(dependencies ...interface{}) bool {
+	err := ctx.c.Resolve(dependencies...)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return false
+	}
+
+	return true
 }
 
 // AssertContentType ensures that the content type of the request matches one of
