@@ -7,18 +7,21 @@ import (
 	"testing"
 
 	"github.com/ljpx/di"
+	"github.com/ljpx/logging"
 	"github.com/ljpx/problem"
 	"github.com/ljpx/test"
 )
 
 type HandlerBuilderFixture struct {
-	x *HandlerBuilder
+	x      *HandlerBuilder
+	logger *logging.DummyLogger
 }
 
 func SetupHandlerBuilderFixture() *HandlerBuilderFixture {
 	fixture := &HandlerBuilderFixture{}
+	fixture.logger = logging.NewDummyLogger()
 
-	fixture.x = NewHandlerBuilder(di.NewContainer(), &Config{
+	fixture.x = NewHandlerBuilder(di.NewContainer(), fixture.logger, &Config{
 		DebuggingEnabled:         true,
 		ProblemDetailsTypePrefix: "https://testi.ng",
 		JSONContentLengthLimit:   1 << 20,
@@ -49,6 +52,7 @@ func TestHandlerBuilderNotFound(t *testing.T) {
 
 	test.That(t, problem.Type).IsEqualTo("https://testi.ng/http/not-found")
 	test.That(t, problem.Detail).IsEqualTo("The path '/hello' was not found.")
+	fixture.logger.AssertLogged(t, "• 404 0s 160.00 B /hello\n")
 }
 
 func TestHandlerBuilderSuccess(t *testing.T) {

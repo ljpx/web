@@ -70,7 +70,13 @@ func (mrw *MeasuredResponseWriter) HasWrittenHeaders() bool {
 
 // Duration returns the duration between the start of the request and now.
 func (mrw *MeasuredResponseWriter) Duration() time.Duration {
-	return time.Now().Sub(mrw.startTime)
+	dur := time.Now().Sub(mrw.startTime)
+
+	if dur < time.Millisecond*5 {
+		dur = time.Duration(0)
+	}
+
+	return dur
 }
 
 // Volume returns the number of bytes written to the response writer body.

@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/ljpx/di"
+	"github.com/ljpx/logging"
 )
 
 // HandlerBuilder is used to build a handler that can be passed to any HTTP
@@ -15,6 +16,7 @@ import (
 type HandlerBuilder struct {
 	c      di.Container
 	config *Config
+	logger logging.Logger
 
 	routesByPath map[string][]Route
 	hasBeenBuilt bool
@@ -22,10 +24,11 @@ type HandlerBuilder struct {
 
 // NewHandlerBuilder creates a new handler builder with the provided config and
 // container.
-func NewHandlerBuilder(c di.Container, config *Config) *HandlerBuilder {
+func NewHandlerBuilder(c di.Container, logger logging.Logger, config *Config) *HandlerBuilder {
 	return &HandlerBuilder{
 		c:      c,
 		config: config,
+		logger: logger,
 
 		routesByPath: make(map[string][]Route),
 	}
@@ -48,11 +51,11 @@ func (b *HandlerBuilder) Build() http.Handler {
 
 	for path, routes := range b.routesByPath {
 		ctxHandler := buildHandlerForPath(path, routes)
-		requestHandler := buildHandlerFromRequest(b.c, b.config, ctxHandler)
+		requestHandler := buildHandlerFromRequest(b.c, b.logger, b.config, ctxHandler)
 		mx.HandleFunc(path, requestHandler)
 	}
 
-	notFoundRequestHandler := buildHandlerFromRequest(b.c, b.config, func(ctx *Context) {
+	notFoundRequestHandler := buildHandlerFromRequest(b.c, b.logger, b.config, func(ctx *Context) {
 		ctx.NotFound("path", ctx.r.URL.Path)
 	})
 
@@ -67,7 +70,7 @@ func (b *HandlerBuilder) assertNotAlreadyBuilt() {
 	}
 }
 
-func buildHandlerFromRequest(c di.Container, config *Config, ctxHandler ContextHandlerFunc) http.HandlerFunc {
+func buildHandlerFromRequest(c di.Container, logger logging.Logger, config *Config, ctxHandler ContextHandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		mrw := NewMeasuredResponseWriter(w)
 		ctx := NewContext(mrw, r, c, config)
@@ -77,6 +80,9 @@ func buildHandlerFromRequest(c di.Container, config *Config, ctxHandler ContextH
 				err := fmt.Errorf("%v", p)
 				ctx.InternalServerError(err)
 			}
+
+			logmsg := fmt.Sprintf("• %v %v %v %v\n", mrw.statusCode, mrw.Duration(), ByteSizeToFriendlyString(mrw.volume), r.URL.Path)
+			logger.Printf(logmsg)
 		}()
 
 		ctxHandler(ctx)
